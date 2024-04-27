@@ -15,13 +15,16 @@ public:
 class Maze {
 private:
     int width, height;
-    std::vector<std::vector<Cell>> cells;
-    std::default_random_engine rng;
+    std::vector<std::vector<Cell>> cells; // 2D vector of cells
+    std::default_random_engine rng; // Random number generator
 
+    // Check if the move is valid by checking if the cell is within the maze boundaries
     bool isMoveValid(int x, int y) {
         return x >= 0 && x < width && y >= 0 && y < height;
     }
 
+    // Depth-first search algorithm to generate the maze
+    // It basically carves out passages in the maze by removing walls between cells
     void dfs(int x, int y) {
         cells[y][x].visited = true;
 
@@ -37,7 +40,7 @@ private:
                 case 2: ny++; break; // Move down
                 case 3: nx--; break; // Move left
             }
-
+            // Check if the move is valid and the cell is not visited
             if (isMoveValid(nx, ny) && !cells[ny][nx].visited) {
                 cells[y][x].walls[direction] = false;
                 cells[ny][nx].walls[(direction + 2) % 4] = false;
