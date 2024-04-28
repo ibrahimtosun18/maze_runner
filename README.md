@@ -1,6 +1,6 @@
 # Maze Generator
 
-This program generates a random maze based on user-defined width and height. The maze is created using a depth-first search (DFS) algorithm and is displayed in the terminal using ASCII characters.
+This program generates a random maze based on user-defined width and height. The maze is created using a depth-first search (DFS) algorithm and is displayed in the seperate sfml terminal.
 
 ## Features
 
@@ -19,6 +19,6 @@ This program generates a random maze based on user-defined width and height. The
 To compile the Maze Generator, use the following command:
 
 ```bash
-g++ maze.cpp -o maze
+g++ maze.cpp -o maze -lsfml-graphics -lsfml-window -lsfml-system
 
 
