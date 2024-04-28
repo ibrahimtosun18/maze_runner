@@ -3,6 +3,7 @@
 #include <stack>
 #include <random>
 #include <algorithm>
+#include <SFML/Graphics.hpp>
 
 class Cell {
 public:
@@ -56,36 +57,40 @@ public:
         cells[height - 1][width - 1].walls[1] = false;  // Open the right wall of the last cell for exit
     }
 
-    void displayMaze() {
-        // Display the top boundary
-        std::cout << "  +"; // Entry gap
-        for (int x = 1; x < width; ++x) std::cout << "--+";
-        std::cout << '\n';
+    void draw(sf::RenderWindow &window) {
+        float cellWidth = static_cast<float>(window.getSize().x) / width;
+        float cellHeight = static_cast<float>(window.getSize().y) / height;
+        sf::RectangleShape wallVertical(sf::Vector2f(4, cellHeight)); // Slightly thicker wall
+        sf::RectangleShape wallHorizontal(sf::Vector2f(cellWidth, 4)); // Slightly thicker wall
+        wallVertical.setFillColor(sf::Color::Black); // Set wall color to black
+        wallHorizontal.setFillColor(sf::Color::Black); // Set wall color to black
 
+        // Draw the vertical walls
         for (int y = 0; y < height; ++y) {
-            // Display the left boundary of the maze
-            if (y == 0) std::cout << " ";
-            else std::cout << "|";
-
-            // Display the passage ways or walls between cells
             for (int x = 0; x < width; ++x) {
-                std::cout << "  "; // Passage way
-                if (x < width - 1) std::cout << (cells[y][x].walls[1] ? "|" : " ");
-                else {
-                    if (y == height - 1) std::cout << " "; // Exit gap
-                    else std::cout << "|";
+                if (cells[y][x].walls[1]) { // Right wall
+                    wallVertical.setPosition((x + 1) * cellWidth - wallVertical.getSize().x / 2, y * cellHeight);
+                    window.draw(wallVertical);
+                }
+                if (x == 0) { // Left wall
+                    wallVertical.setPosition(0, y * cellHeight);
+                    window.draw(wallVertical);
                 }
             }
-            std::cout << '\n';
+        }
 
-            // Display the bottom boundary of the cells
-            std::cout << "+";
-            for (int x = 0; x < width; ++x) {
-                if (y < height - 1) std::cout << (cells[y][x].walls[2] ? "--" : "  ");
-                else std::cout << "--";
-                std::cout << "+";
+        // Draw the horizontal walls
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                if (cells[y][x].walls[2]) { // Bottom wall
+                    wallHorizontal.setPosition(x * cellWidth, (y + 1) * cellHeight - wallHorizontal.getSize().y / 2);
+                    window.draw(wallHorizontal);
+                }
+                if (y == 0) { // Top wall
+                    wallHorizontal.setPosition(x * cellWidth, 0);
+                    window.draw(wallHorizontal);
+                }
             }
-            std::cout << '\n';
         }
     }
 };
@@ -99,7 +104,26 @@ int main() {
 
     Maze maze(width, height);
     maze.generateMaze();
-    maze.displayMaze();
+
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Maze Game");
+    window.setFramerateLimit(60);
+
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            else if (event.type == sf::Event::Resized) {
+                // Adjust the viewport of the window when the window is resized
+                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+                window.setView(sf::View(visibleArea));
+            }
+        }
+
+        window.clear(sf::Color::White);
+        maze.draw(window);
+        window.display();
+    }
 
     return 0;
 }
