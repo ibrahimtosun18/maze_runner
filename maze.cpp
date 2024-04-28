@@ -1,9 +1,9 @@
+#include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
 #include <stack>
 #include <random>
 #include <algorithm>
-#include <SFML/Graphics.hpp>
 
 class Cell {
 public:
@@ -16,42 +16,56 @@ public:
 class Maze {
 private:
     int width, height;
-    std::vector<std::vector<Cell>> cells; // 2D vector of cells
-    std::default_random_engine rng; // Random number generator
+    std::vector<std::vector<Cell>> cells;
+    std::default_random_engine rng;
+    sf::Vector2i playerPosition; // Player position in the maze
 
-    // Check if the move is valid by checking if the cell is within the maze boundaries
     bool isMoveValid(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height;
+        return x >= 0 && x < width && y >= 0 && y < height && !cells[y][x].visited;
     }
 
-    // Depth-first search algorithm to generate the maze
-    // It basically carves out passages in the maze by removing walls between cells
+    // Player movement handling
+    bool canMove(int dx, int dy) {
+        int newX = playerPosition.x + dx;
+        int newY = playerPosition.y + dy;
+        if (newX < 0 || newX >= width || newY < 0 || newY >= height)
+            return false;
+        // Check if there's a wall in the direction of movement
+        if (dx == 1 && cells[playerPosition.y][playerPosition.x].walls[1]) return false;
+        if (dx == -1 && cells[playerPosition.y][playerPosition.x].walls[3]) return false;
+        if (dy == 1 && cells[playerPosition.y][playerPosition.x].walls[2]) return false;
+        if (dy == -1 && cells[playerPosition.y][playerPosition.x].walls[0]) return false;
+        return true;
+    }
+
     void dfs(int x, int y) {
-        cells[y][x].visited = true;
-
-        // 0: top, 1: right, 2: bottom, 3: left
-        std::vector<int> directions = {0, 1, 2, 3};
-        std::shuffle(directions.begin(), directions.end(), rng);
-
-        for (int direction : directions) {
-            int nx = x, ny = y;
-            switch (direction) {
-                case 0: ny--; break; // Move up
-                case 1: nx++; break; // Move right
-                case 2: ny++; break; // Move down
-                case 3: nx--; break; // Move left
-            }
-            // Check if the move is valid and the cell is not visited
-            if (isMoveValid(nx, ny) && !cells[ny][nx].visited) {
-                cells[y][x].walls[direction] = false;
-                cells[ny][nx].walls[(direction + 2) % 4] = false;
-                dfs(nx, ny);
+            cells[y][x].visited = true;
+    
+            std::vector<int> directions = {0, 1, 2, 3}; // 0: top, 1: right, 2: bottom, 3: left
+            std::shuffle(directions.begin(), directions.end(), rng);
+    
+            for (auto direction : directions) {
+                int nx = x, ny = y;
+                switch (direction) {
+                    case 0: ny--; break; // Move up
+                    case 1: nx++; break; // Move right
+                    case 2: ny++; break; // Move down
+                    case 3: nx--; break; // Move left
+                }
+                if (isMoveValid(nx, ny) && !cells[ny][nx].visited) {
+                    // Remove the walls between the current cell and the chosen cell
+                    cells[y][x].walls[direction] = false;
+                    cells[ny][nx].walls[(direction + 2) % 4] = false;
+                    dfs(nx, ny); // Recursively visit the next cell
+                }
             }
         }
-    }
+
 
 public:
-    Maze(int w, int h) : width(w), height(h), cells(h, std::vector<Cell>(w)), rng(std::random_device{}()) {}
+    Maze(int w, int h) : width(w), height(h), cells(h, std::vector<Cell>(w)), rng(std::random_device{}()) {
+        playerPosition = sf::Vector2i(0, 0); // Start position at the maze entry
+    }
 
     void generateMaze() {
         dfs(0, 0);  // Start the maze from the top-left corner
@@ -60,42 +74,68 @@ public:
         cells[height - 1][width - 1].walls[1] = false;  // Open the right wall of the last cell for exit
     }
 
+    void movePlayer(int dx, int dy) {
+        if (canMove(dx, dy)) {
+            playerPosition.x += dx;
+            playerPosition.y += dy;
+        }
+    }
+
+
     void draw(sf::RenderWindow &window) {
         float cellWidth = static_cast<float>(window.getSize().x) / width;
         float cellHeight = static_cast<float>(window.getSize().y) / height;
-        sf::RectangleShape wallVertical(sf::Vector2f(4, cellHeight)); // Slightly thicker wall
-        sf::RectangleShape wallHorizontal(sf::Vector2f(cellWidth, 4)); // Slightly thicker wall
-        wallVertical.setFillColor(sf::Color::Black); // Set wall color to black
-        wallHorizontal.setFillColor(sf::Color::Black); // Set wall color to black
 
-        // Draw the vertical walls
+        sf::RectangleShape wallVertical(sf::Vector2f(4, cellHeight)); // Thicker wall for better visibility
+        sf::RectangleShape wallHorizontal(sf::Vector2f(cellWidth, 4));
+        wallVertical.setFillColor(sf::Color::Black);
+        wallHorizontal.setFillColor(sf::Color::Black);
+
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                if (cells[y][x].walls[1]) { // Right wall
-                    wallVertical.setPosition((x + 1) * cellWidth - wallVertical.getSize().x / 2, y * cellHeight);
-                    window.draw(wallVertical);
+                // Draw the top wall if it exists
+                if (cells[y][x].walls[0]) {
+                    wallHorizontal.setPosition(x * cellWidth, y * cellHeight);
+                    window.draw(wallHorizontal);
                 }
-                if (x == 0) { // Left wall
-                    wallVertical.setPosition(0, y * cellHeight);
+                // Draw the left wall if it exists
+                if (cells[y][x].walls[3]) {
+                    wallVertical.setPosition(x * cellWidth, y * cellHeight);
                     window.draw(wallVertical);
                 }
             }
+        }
+        // Draw exit indicator
+        sf::RectangleShape exitIndicator(sf::Vector2f(cellWidth, cellHeight));
+        exitIndicator.setFillColor(sf::Color(0, 255, 0, 128)); // Light green, semi-transparent
+        exitIndicator.setPosition((width - 1) * cellWidth, (height - 1) * cellHeight);
+        window.draw(exitIndicator);
+
+
+        // Draw the bottom and right boundary walls of the maze
+        for (int x = 0; x < width; ++x) {
+            wallHorizontal.setPosition(x * cellWidth, height * cellHeight);
+            window.draw(wallHorizontal);
+        }
+        for (int y = 0; y < height; ++y) {
+            wallVertical.setPosition(width * cellWidth, y * cellHeight);
+            window.draw(wallVertical);
         }
 
-        // Draw the horizontal walls
-        for (int x = 0; x < width; ++x) {
-            for (int y = 0; y < height; ++y) {
-                if (cells[y][x].walls[2]) { // Bottom wall
-                    wallHorizontal.setPosition(x * cellWidth, (y + 1) * cellHeight - wallHorizontal.getSize().y / 2);
-                    window.draw(wallHorizontal);
-                }
-                if (y == 0) { // Top wall
-                    wallHorizontal.setPosition(x * cellWidth, 0);
-                    window.draw(wallHorizontal);
-                }
-            }
+    // Draw the player as a red circle
+    sf::CircleShape player(std::min(cellWidth, cellHeight) / 2.0f * 0.3f); // Adjust size relative to cell size
+    player.setFillColor(sf::Color::Red);
+    player.setPosition(playerPosition.x * cellWidth + cellWidth / 2 - player.getRadius(),
+                       playerPosition.y * cellHeight + cellHeight / 2 - player.getRadius());
+    window.draw(player);
+
+        if (playerPosition.x == width - 1 && playerPosition.y == height - 1) {
+            std::cout << "Congratulations! You've reached the exit!" << std::endl;
+            window.close(); // Close the window to end the game
         }
     }
+
+    
 };
 
 int main() {
@@ -114,12 +154,29 @@ int main() {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
+            if (event.type == sf::Event::Closed) {
                 window.close();
+            }
             else if (event.type == sf::Event::Resized) {
                 // Adjust the viewport of the window when the window is resized
                 sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
                 window.setView(sf::View(visibleArea));
+            }
+            else if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                    case sf::Keyboard::Up:
+                        maze.movePlayer(0, -1);
+                        break;
+                    case sf::Keyboard::Left:
+                        maze.movePlayer(-1, 0);
+                        break;
+                    case sf::Keyboard::Right:
+                        maze.movePlayer(1, 0);
+                        break;
+                    case sf::Keyboard::Down:
+                        maze.movePlayer(0, 1);
+                        break;
+                }
             }
         }
 
