@@ -16,33 +16,34 @@ public:
 class Maze {
 private:
     int width, height;
-    std::vector<std::vector<Cell>> cells;
-    std::default_random_engine rng;
+    std::vector<std::vector<Cell>> cells; // 2D grid of cells
+    std::default_random_engine rng; // Random number generator
     sf::Vector2i playerPosition; // Player position in the maze
 
+    // Check if the cell at position (x, y) is a valid move and has not been visited
     bool isMoveValid(int x, int y) {
         return x >= 0 && x < width && y >= 0 && y < height && !cells[y][x].visited;
     }
 
     // Player movement handling
     bool canMove(int dx, int dy) {
-        int newX = playerPosition.x + dx;
+        int newX = playerPosition.x + dx; //
         int newY = playerPosition.y + dy;
-        if (newX < 0 || newX >= width || newY < 0 || newY >= height)
-            return false;
+        if (newX < 0 || newX >= width || newY < 0 || newY >= height) return false; // Check if the new position is within the maze bounds
+        
         // Check if there's a wall in the direction of movement
-        if (dx == 1 && cells[playerPosition.y][playerPosition.x].walls[1]) return false;
-        if (dx == -1 && cells[playerPosition.y][playerPosition.x].walls[3]) return false;
-        if (dy == 1 && cells[playerPosition.y][playerPosition.x].walls[2]) return false;
-        if (dy == -1 && cells[playerPosition.y][playerPosition.x].walls[0]) return false;
+        if (dx == 1 && cells[playerPosition.y][playerPosition.x].walls[1]) return false; // Right wall
+        if (dx == -1 && cells[playerPosition.y][playerPosition.x].walls[3]) return false; // Left wall
+        if (dy == 1 && cells[playerPosition.y][playerPosition.x].walls[2]) return false; // Bottom wall
+        if (dy == -1 && cells[playerPosition.y][playerPosition.x].walls[0]) return false; // Top wall
         return true;
     }
-
+    // Depth-first search algorithm to generate the maze
     void dfs(int x, int y) {
-            cells[y][x].visited = true;
+            cells[y][x].visited = true; // Mark the current cell as visited
     
             std::vector<int> directions = {0, 1, 2, 3}; // 0: top, 1: right, 2: bottom, 3: left
-            std::shuffle(directions.begin(), directions.end(), rng);
+            std::shuffle(directions.begin(), directions.end(), rng); // Randomize the order of directions
     
             for (auto direction : directions) {
                 int nx = x, ny = y;
@@ -63,6 +64,7 @@ private:
 
 
 public:
+    
     Maze(int w, int h) : width(w), height(h), cells(h, std::vector<Cell>(w)), rng(std::random_device{}()) {
         playerPosition = sf::Vector2i(0, 0); // Start position at the maze entry
     }
@@ -73,7 +75,7 @@ public:
         cells[0][0].walls[3] = false;        // Open the left wall of the first cell for entry
         cells[height - 1][width - 1].walls[1] = false;  // Open the right wall of the last cell for exit
     }
-
+    
     void movePlayer(int dx, int dy) {
         if (canMove(dx, dy)) {
             playerPosition.x += dx;
@@ -81,16 +83,17 @@ public:
         }
     }
 
-
+    // Draw the maze and player
     void draw(sf::RenderWindow &window) {
         float cellWidth = static_cast<float>(window.getSize().x) / width;
         float cellHeight = static_cast<float>(window.getSize().y) / height;
 
-        sf::RectangleShape wallVertical(sf::Vector2f(4, cellHeight)); // Thicker wall for better visibility
+        sf::RectangleShape wallVertical(sf::Vector2f(4, cellHeight)); // Thicker walls for better visibility
         sf::RectangleShape wallHorizontal(sf::Vector2f(cellWidth, 4));
-        wallVertical.setFillColor(sf::Color::Black);
-        wallHorizontal.setFillColor(sf::Color::Black);
+        wallVertical.setFillColor(sf::Color(70, 60, 120));
+        wallHorizontal.setFillColor(sf::Color(70, 60, 120));
 
+        // Draw the maze walls by iterating through each cell
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 // Draw the top wall if it exists
@@ -107,7 +110,7 @@ public:
         }
         // Draw exit indicator
         sf::RectangleShape exitIndicator(sf::Vector2f(cellWidth, cellHeight));
-        exitIndicator.setFillColor(sf::Color(0, 255, 0, 128)); // Light green, semi-transparent
+        exitIndicator.setFillColor(sf::Color(0, 110, 233, 213)); // dark blue, semi-transparent
         exitIndicator.setPosition((width - 1) * cellWidth, (height - 1) * cellHeight);
         window.draw(exitIndicator);
 
@@ -124,7 +127,7 @@ public:
 
     // Draw the player as a red circle
     sf::CircleShape player(std::min(cellWidth, cellHeight) / 2.0f * 0.3f); // Adjust size relative to cell size
-    player.setFillColor(sf::Color::Red);
+    player.setFillColor(sf::Color(222,0,255));
     player.setPosition(playerPosition.x * cellWidth + cellWidth / 2 - player.getRadius(),
                        playerPosition.y * cellHeight + cellHeight / 2 - player.getRadius());
     window.draw(player);
@@ -144,6 +147,9 @@ int main() {
     std::cin >> width;
     std::cout << "Enter the height of the maze: ";
     std::cin >> height;
+
+    //add clock to measure time
+    sf::Clock clock;
 
     Maze maze(width, height);
     maze.generateMaze();
@@ -180,10 +186,14 @@ int main() {
             }
         }
 
-        window.clear(sf::Color::White);
+        window.clear(sf::Color::Black);
         maze.draw(window);
         window.display();
     }
+
+    //print time elapsed
+    sf::Time elapsed = clock.getElapsedTime();
+    std::cout << "Time elapsed: " << elapsed.asSeconds() << " seconds" << std::endl;
 
     return 0;
 }
