@@ -22,7 +22,8 @@ To compile the Maze Generator, use the following command:
 g++ maze.cpp -o maze -lsfml-graphics -lsfml-window -lsfml-system
 ```
 
-## How it looks![png](https://github.com/ibrahimtosun18/maze_runner/assets/95874081/cda47258-040d-49b5-8f7f-b0d4a43589d8)
+## How it looks
+![png](https://github.com/ibrahimtosun18/maze_runner/assets/95874081/cda47258-040d-49b5-8f7f-b0d4a43589d8)
 
 
 
