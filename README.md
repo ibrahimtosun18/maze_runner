@@ -28,3 +28,8 @@ g++ maze.cpp -o maze -lsfml-graphics -lsfml-window -lsfml-system
 
 
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+
